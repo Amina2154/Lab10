@@ -1,0 +1,65 @@
+CREATE TABLE PhoneBook (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50),
+    phone_number VARCHAR(15) UNIQUE NOT NULL
+);
+
+COPY PhoneBook(first_name, last_name, phone_number)
+FROM '/path/to/phonebook.csv'
+DELIMITER ','
+CSV HEADER;
+
+INSERT INTO PhoneBook (first_name, last_name, phone_number)
+VALUES ('John', 'Doe', '1234567890');
+
+import psycopg2
+
+def connect_db():
+    return psycopg2.connect(dbname="phonebook_db", user="username", password="password", host="localhost")
+
+def insert_contact(first_name, last_name, phone_number):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO PhoneBook (first_name, last_name, phone_number) VALUES (%s, %s, %s)",
+                (first_name, last_name, phone_number))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def update_contact(first_name, new_first_name, new_phone_number):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE PhoneBook
+        SET first_name = %s, phone_number = %s
+        WHERE first_name = %s
+    """, (new_first_name, new_phone_number, first_name))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def delete_contact_by_phone(phone_number):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM PhoneBook WHERE phone_number = %s", (phone_number,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def get_contacts_by_last_name(last_name):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM PhoneBook WHERE last_name = %s", (last_name,))
+    result = cur.fetchall()
+    cur.close()
+    conn.close()
+    return result
+
+# Example usage
+insert_contact("Alice", "Johnson", "5551234567")
+update_contact("Alice", "Alicia", "5557654321")
+delete_contact_by_phone("5551234567")
+contacts = get_contacts_by_last_name("Johnson")
+for contact in contacts:
+    print(contact)
